@@ -1,1 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
 
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fitness Challenge Tracker</title>
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23004587'/><text x='50' y='70' font-size='60' text-anchor='middle' font-weight='bold' fill='%23fbba07'>F</text></svg>">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <!-- Login Page -->
+    <div id="loginPage" class="login-container">
+        <div class="login-card">
+            <div class="login-icon">🏆</div>
+            <h1>Fitness Challenge Tracker</h1>
+            <p class="subtitle">Track your fitness and discover your strengths and weaknesses</p>
+            <p style="font-style: italic; color: #666; margin: 1.5rem 0; font-size: 0.95rem;">
+                "Remember, the only person you need to be better than<br>is the person you were yesterday!"
+            </p>
+            <button id="loginButton" class="ms-login-btn">
+                <span>🔐</span>
+                Sign in with Microsoft 365
+            </button>
+        </div>
+    </div>
+
+    <!-- Main App (Hidden until logged in) -->
+    <div id="mainApp" class="hidden">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="app-title">
+                <span>🏆</span>
+                Fitness Challenge Tracker
+            </div>
+            <div class="user-info">
+                <div class="notification-badge" id="notificationBell">
+                    🔔
+                    <span class="notification-count hidden" id="notificationCount">0</span>
+                </div>
+                <span class="user-name" id="userName"></span>
+                <button class="logout-btn" id="logoutButton">Logout</button>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <div class="container">
+                <!-- Navigation Tabs -->
+                <nav class="nav-tabs" id="navTabs">
+                    <button class="nav-tab active" data-view="submit">📝 Submit Challenge</button>
+                    <button class="nav-tab" data-view="myResults">📊 My Results</button>
+                    <button class="nav-tab" data-view="verify">✅ Verify Buddies</button>
+                    <button class="nav-tab" data-view="leaderboard">🏆 Leaderboard</button>
+                    <button class="nav-tab hidden" data-view="admin" id="adminTab">⚙️ Admin</button>
+                </nav>
+
+                <!-- Submit Challenge View -->
+                <section id="submitView" class="view-section active">
+                    <div class="content-card">
+                        <div class="card-header">
+                            <span class="card-icon">💪</span>
+                            <h2>Submit a Challenge</h2>
+                        </div>
+
+                        <form id="submitForm">
+                            <div class="form-group">
+                                <label for="challengeSelect">Select Challenge</label>
+                                <select id="challengeSelect" class="form-control" required>
+                                    <option value="">-- Choose a challenge --</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group" id="resultGroup" style="display: none;">
+                                <label for="resultInput">Your Result</label>
+                                <div class="input-with-unit">
+                                    <input type="number" id="resultInput" class="form-control" step="any" required>
+                                    <span class="unit-label" id="unitLabel">-</span>
+                                </div>
+                            </div>
+
+                            <div class="form-group" id="buddyGroup" style="display: none;">
+                                <label for="buddySelect">👥 Find a Buddy to Verify</label>
+
+                                <div
+                                    style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                    <select id="buddyGradeFilter" class="form-control" style="font-size: 0.9rem;">
+                                        <option value="">All Grades</option>
+                                        <option value="6">Grade 6</option>
+                                        <option value="7">Grade 7</option>
+                                        <option value="8">Grade 8</option>
+                                        <option value="9">Grade 9</option>
+                                        <option value="10">Grade 10</option>
+                                        <option value="11">Grade 11</option>
+                                        <option value="12">Grade 12</option>
+                                        <option value="13">Grade 13</option>
+                                    </select>
+                                    <select id="buddyGenderFilter" class="form-control" style="font-size: 0.9rem;">
+                                        <option value="">All Genders</option>
+                                        <option value="Male">Male</option>
+                                        <option value="Female">Female</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+
+                                <select id="buddySelect" class="form-control" required>
+                                    <option value="">-- Choose a buddy --</option>
+                                </select>
+                                <small style="color: #666; margin-top: 0.5rem; display: block;">
+                                    Your buddy will need to verify this submission
+                                </small>
+                            </div>
+
+                            <div id="warningAlert" class="alert alert-warning hidden">
+                                ⚠️ This score seems unusually high. Please make sure it's correct!
+                            </div>
+
+                            <button type="submit" class="btn btn-primary" id="submitBtn">
+                                <span>📤</span>
+                                Submit Challenge
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Challenge Info Cards -->
+                    <div class="content-card">
+                        <div class="card-header">
+                            <span class="card-icon">📋</span>
+                            <h2>Available Challenges</h2>
+                        </div>
+                        <div class="challenge-grid" id="challengeGrid"></div>
+                    </div>
+                </section>
+
+                <!-- My Results View -->
+                <section id="myResultsView" class="view-section">
+                    <div class="content-card">
+                        <div class="card-header">
+                            <span class="card-icon">📊</span>
+                            <h2>My Submissions</h2>
+                            <button id="downloadPdfBtn" class="btn btn-secondary" style="margin-left: auto;">
+                                📄 Download PDF Report
+                            </button>
+                        </div>
+                        <div id="myResultsContent">
+                            <div class="empty-state">
+                                <div class="empty-state-icon">📭</div>
+                                <h3>No submissions yet</h3>
+                                <p>Start by submitting your first challenge!</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Verify Buddies View -->
+                <section id="verifyView" class="view-section">
+                    <div class="content-card">
+                        <div class="card-header">
+                            <span class="card-icon">✅</span>
+                            <h2>Pending Verifications</h2>
+                        </div>
+                        <div id="verificationList">
+                            <div class="empty-state">
+                                <div class="empty-state-icon">✨</div>
+                                <h3>All caught up!</h3>
+                                <p>No pending verifications at the moment.</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Leaderboard View -->
+                <section id="leaderboardView" class="view-section">
+                    <div class="content-card">
+                        <div class="card-header">
+                            <span class="card-icon">🏆</span>
+                            <h2>Leaderboard</h2>
+                        </div>
+
+                        <div class="leaderboard-filter">
+                            <div class="form-group">
+                                <label for="leaderboardChallengeSelect">Filter by Challenge</label>
+                                <select id="leaderboardChallengeSelect" class="form-control">
+                                    <option value="">-- Select a challenge --</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="leaderboardGradeFilter">Filter by Grade</label>
+                                <select id="leaderboardGradeFilter" class="form-control">
+                                    <option value="">All Grades</option>
+                                    <option value="6">Grade 6</option>
+                                    <option value="7">Grade 7</option>
+                                    <option value="8">Grade 8</option>
+                                    <option value="9">Grade 9</option>
+                                    <option value="10">Grade 10</option>
+                                    <option value="11">Grade 11</option>
+                                    <option value="12">Grade 12</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="leaderboardGenderFilter">Filter by Gender</label>
+                                <select id="leaderboardGenderFilter" class="form-control">
+                                    <option value="">All Genders</option>
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div id="leaderboardContent">
+                            <div class="empty-state">
+                                <div class="empty-state-icon">🎯</div>
+                                <h3>Select a challenge</h3>
+                                <p>Choose a challenge above to view the leaderboard</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Admin View -->
+                <section id="adminView" class="view-section">
+                    <div class="content-card">
+                        <div class="card-header">
+                            <span class="card-icon">⚙️</span>
+                            <h2>Admin Dashboard</h2>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <strong>Admin Access:</strong> You can manually enter data and manage all verifications.
+                        </div>
+
+                        <h3 style="color: #004587; margin-top: 2rem; margin-bottom: 1rem;">Manual Data Entry</h3>
+                        <form id="adminSubmitForm">
+                            <div class="form-group">
+                                <label for="adminStudentSelect">👤 Select Student</label>
+
+                                <div
+                                    style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                    <select id="adminStudentGradeFilter" class="form-control"
+                                        style="font-size: 0.9rem;">
+                                        <option value="">All Grades</option>
+                                        <option value="6">Grade 6</option>
+                                        <option value="7">Grade 7</option>
+                                        <option value="8">Grade 8</option>
+                                        <option value="9">Grade 9</option>
+                                        <option value="10">Grade 10</option>
+                                        <option value="11">Grade 11</option>
+                                        <option value="12">Grade 12</option>
+                                        <option value="13">Grade 13</option>
+                                    </select>
+                                    <select id="adminStudentGenderFilter" class="form-control"
+                                        style="font-size: 0.9rem;">
+                                        <option value="">All Genders</option>
+                                        <option value="Male">Male</option>
+                                        <option value="Female">Female</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+
+                                <select id="adminStudentSelect" class="form-control" required>
+                                    <option value="">-- Choose a student --</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="adminChallengeSelect">Challenge</label>
+                                <select id="adminChallengeSelect" class="form-control" required>
+                                    <option value="">-- Choose a challenge --</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="adminResultInput">Result</label>
+                                <div class="input-with-unit">
+                                    <input type="number" id="adminResultInput" class="form-control" step="any" required>
+                                    <span class="unit-label" id="adminUnitLabel">-</span>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-success">
+                                <span>✅</span>
+                                Submit as Admin (Auto-Verified)
+                            </button>
+                        </form>
+
+                        <h3 style="color: #004587; margin-top: 3rem; margin-bottom: 1rem;">All Pending Verifications
+                        </h3>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 1rem;">
+                            <select id="adminVerifyGradeFilter" class="form-control">
+                                <option value="">All Grades</option>
+                                <option value="6">Grade 6</option>
+                                <option value="7">Grade 7</option>
+                                <option value="8">Grade 8</option>
+                                <option value="9">Grade 9</option>
+                                <option value="10">Grade 10</option>
+                                <option value="11">Grade 11</option>
+                                <option value="12">Grade 12</option>
+                                <option value="13">Grade 13</option>
+                            </select>
+                            <select id="adminVerifyGenderFilter" class="form-control">
+                                <option value="">All Genders</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+
+                        <div id="adminVerificationList">
+                            <div class="empty-state">
+                                <div class="empty-state-icon">✨</div>
+                                <h3>No pending verifications</h3>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <p style="margin-top: 1rem; color: #333;">Loading...</p>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Confirm</h3>
+                <button class="modal-close" id="modalClose">×</button>
+            </div>
+            <div class="modal-body">
+                <p id="modalMessage"></p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="modalCancel">Cancel</button>
+                <button class="btn btn-primary" id="modalConfirm">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@latest/dist/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@latest/dist/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://alcdn.msauth.net/browser/2.14.2/js/msal-browser.min.js"></script>
+    <script src="demo-mode.js"></script>
+    <script src="config.js"></script>
+    <script src="scoring.js"></script>
+    <script src="auth.js"></script>
+    <script src="excel-api.js"></script>
+    <script src="pdf-generator.js"></script>
+    <script src="app.js"></script>
+</body>
+
+</html>
