@@ -174,9 +174,25 @@ async function onUserLoggedIn() {
     // Update user name in header
     document.getElementById('userName').textContent = currentUser.name;
 
-    // Show admin tab if user is staff
+    // Set UI state based on role
     if (currentUser.isStaff) {
+        // Staff view
         document.getElementById('adminTab').classList.remove('hidden');
+        document.querySelectorAll('.student-only').forEach(el => el.classList.add('hidden'));
+
+        // Default teachers to leaderboard view
+        if (typeof switchView === 'function') {
+            switchView('leaderboard');
+        }
+    } else {
+        // Student view
+        document.getElementById('adminTab').classList.add('hidden');
+        document.querySelectorAll('.student-only').forEach(el => el.classList.remove('hidden'));
+
+        // Default students to submit view
+        if (typeof switchView === 'function') {
+            switchView('submit');
+        }
     }
 
     // Initialize the app

@@ -157,9 +157,15 @@ function handleChallengeSelection(e) {
     if (challengeId) {
         selectedChallenge = challenges.find(c => c.id === challengeId);
 
-        // Show result input group
-        document.getElementById('resultGroup').style.display = 'block';
-        document.getElementById('unitLabel').textContent = selectedChallenge.unit;
+        // Show appropriate input group
+        if (['run1500m', 'cdlmile', 'plank'].includes(selectedChallenge.id)) {
+            document.getElementById('timeInputGroup').style.display = 'block';
+            document.getElementById('resultGroup').style.display = 'none';
+        } else {
+            document.getElementById('timeInputGroup').style.display = 'none';
+            document.getElementById('resultGroup').style.display = 'block';
+            document.getElementById('unitLabel').textContent = selectedChallenge.unit;
+        }
 
         // Show buddy group and populate buddy list
         document.getElementById('buddyGroup').style.display = 'block';
@@ -169,6 +175,7 @@ function handleChallengeSelection(e) {
         checkHighScore();
     } else {
         document.getElementById('resultGroup').style.display = 'none';
+        document.getElementById('timeInputGroup').style.display = 'none';
         document.getElementById('buddyGroup').style.display = 'none';
         document.getElementById('warningAlert').classList.add('hidden');
         selectedChallenge = null;
@@ -266,7 +273,18 @@ async function updateAdminStudentList() {
 // Check for high scores
 function checkHighScore() {
     const resultInput = document.getElementById('resultInput');
-    const value = parseFloat(resultInput.value);
+    const minutesInput = document.getElementById('minutesInput');
+    const secondsInput = document.getElementById('secondsInput');
+
+    let value;
+    if (['run1500m', 'cdlmile', 'plank'].includes(selectedChallenge?.id)) {
+        const mins = parseFloat(minutesInput.value) || 0;
+        const secs = parseFloat(secondsInput.value) || 0;
+        value = mins * 60 + secs;
+    } else {
+        value = parseFloat(resultInput.value);
+    }
+
     const warningAlert = document.getElementById('warningAlert');
 
     if (selectedChallenge && value) {
@@ -288,7 +306,14 @@ function handleAdminChallengeSelection(e) {
     const challenge = challenges.find(c => c.id === challengeId);
 
     if (challenge) {
-        document.getElementById('adminUnitLabel').textContent = challenge.unit;
+        if (['run1500m', 'cdlmile', 'plank'].includes(challenge.id)) {
+            document.getElementById('adminTimeInputGroup').style.display = 'block';
+            document.getElementById('adminResultGroup').style.display = 'none';
+        } else {
+            document.getElementById('adminTimeInputGroup').style.display = 'none';
+            document.getElementById('adminResultGroup').style.display = 'block';
+            document.getElementById('adminUnitLabel').textContent = challenge.unit;
+        }
     }
 }
 
@@ -297,16 +322,38 @@ async function handleSubmit(e) {
     e.preventDefault();
 
     const buddySelect = document.getElementById('buddySelect');
-    const resultValue = parseFloat(document.getElementById('resultInput').value);
+    let resultValue;
+
+    if (['run1500m', 'cdlmile', 'plank'].includes(selectedChallenge.id)) {
+        const mins = parseFloat(document.getElementById('minutesInput').value) || 0;
+        const secs = parseFloat(document.getElementById('secondsInput').value) || 0;
+        resultValue = mins * 60 + secs;
+
+        if (resultValue === 0) {
+            showToast('Please enter a valid time', 'error');
+            return;
+        }
+    } else {
+        resultValue = parseFloat(document.getElementById('resultInput').value);
+        if (isNaN(resultValue)) {
+            showToast('Please enter a valid result', 'error');
+            return;
+        }
+    }
 
     const buddyOption = buddySelect.selectedOptions[0];
     const buddyEmail = buddySelect.value;
     const buddyName = buddyOption?.dataset.name || '';
 
     // Confirm submission
+    const isTimed = ['run1500m', 'cdlmile', 'plank'].includes(selectedChallenge.id);
+    const displayResult = isTimed
+        ? formatTime(resultValue)
+        : `${resultValue} ${selectedChallenge.unit}`;
+
     const confirmed = await showConfirmModal(
         'Confirm Submission',
-        `Submit ${resultValue} ${selectedChallenge.unit} for ${selectedChallenge.name}?\n\nYour buddy ${buddyName} will be notified to verify this.`
+        `Submit ${displayResult} for ${selectedChallenge.name}?\n\nYour buddy ${buddyName} will be notified to verify this.`
     );
 
     if (!confirmed) return;
@@ -335,6 +382,7 @@ async function handleSubmit(e) {
         // Reset form
         document.getElementById('submitForm').reset();
         document.getElementById('resultGroup').style.display = 'none';
+        document.getElementById('timeInputGroup').style.display = 'none';
         document.getElementById('buddyGroup').style.display = 'none';
         document.getElementById('warningAlert').classList.add('hidden');
         selectedChallenge = null;
@@ -353,12 +401,26 @@ async function handleAdminSubmit(e) {
 
     const studentSelect = document.getElementById('adminStudentSelect');
     const challengeSelect = document.getElementById('adminChallengeSelect');
-    const resultValue = parseFloat(document.getElementById('adminResultInput').value);
-
-    const studentOption = studentSelect.selectedOptions[0];
-    const challenge = challenges.find(c => c.id === challengeSelect.value);
+    const challengeId = challengeSelect.value;
+    const challenge = challenges.find(c => c.id === challengeId);
 
     if (!challenge) return;
+
+    let resultValue;
+    if (['run1500m', 'cdlmile', 'plank'].includes(challenge.id)) {
+        const mins = parseFloat(document.getElementById('adminMinutesInput').value) || 0;
+        const secs = parseFloat(document.getElementById('adminSecondsInput').value) || 0;
+        resultValue = mins * 60 + secs;
+    } else {
+        resultValue = parseFloat(document.getElementById('adminResultInput').value);
+    }
+
+    if (isNaN(resultValue) || resultValue <= 0) {
+        showToast('Please enter a valid result', 'error');
+        return;
+    }
+
+    const studentOption = studentSelect.selectedOptions[0];
 
     try {
         const currentUser = getCurrentUser();
@@ -366,6 +428,8 @@ async function handleAdminSubmit(e) {
         const submissionData = {
             studentName: studentOption.dataset.name,
             studentEmail: studentSelect.value,
+            gradeLevel: studentOption.dataset.gradeLevel || '',
+            gender: studentOption.dataset.gender || '',
             challenge: challenge.id,
             result: resultValue,
             unit: challenge.unit,
@@ -382,6 +446,8 @@ async function handleAdminSubmit(e) {
         // Reset form
         document.getElementById('adminSubmitForm').reset();
         document.getElementById('adminUnitLabel').textContent = '-';
+        document.getElementById('adminTimeInputGroup').style.display = 'none';
+        document.getElementById('adminResultGroup').style.display = 'block';
 
         // Reload admin verifications
         await loadAdminVerifications();
@@ -391,7 +457,86 @@ async function handleAdminSubmit(e) {
     }
 }
 
-// Load user's results
+// Get user's ranking label in a challenge (filtered by grade/gender)
+async function getUserRankingInChallenge(challengeId, userEmail, userResult, userGrade, userGender) {
+    try {
+        // Get all approved submissions for this challenge
+        const allSubmissions = await getAllSubmissions();
+        let challengeSubmissions = allSubmissions.filter(sub =>
+            sub.Challenge === challengeId &&
+            sub.VerificationStatus === 'Approved'
+        );
+
+        // Filter by user's grade and gender to create their league
+        if (userGrade) {
+            challengeSubmissions = challengeSubmissions.filter(sub => sub.GradeLevel === userGrade);
+        }
+        if (userGender) {
+            challengeSubmissions = challengeSubmissions.filter(sub => sub.Gender === userGender);
+        }
+
+        // If no league data (user is the only one), return "-"
+        if (challengeSubmissions.length === 0) {
+            return '-';
+        }
+
+        // Sort submissions by result (depends on challenge type)
+        const challenge = challenges.find(c => c.id === challengeId);
+        if (!challenge) return '-';
+
+        challengeSubmissions.sort((a, b) => {
+            const resultA = parseFloat(a.Result);
+            const resultB = parseFloat(b.Result);
+            return challenge.type === 'higher-better' ? resultB - resultA : resultA - resultB;
+        });
+
+        // Find user's rank
+        const userRank = challengeSubmissions.findIndex(sub =>
+            sub.StudentEmail === userEmail && parseFloat(sub.Result) === parseFloat(userResult)
+        ) + 1;
+
+        if (userRank === 0) return '-'; // User not found in rankings
+
+        const totalInLeague = challengeSubmissions.length;
+        const positionPercentile = (userRank / totalInLeague) * 100;
+
+        // Determine label based on percentile position
+        let rankingLabel;
+
+        // For smaller groups (< 5), build categories from top down
+        if (totalInLeague < 5) {
+            if (userRank === 1) {
+                rankingLabel = 'Superstar';
+            } else if (userRank === 2) {
+                rankingLabel = 'Amazing';
+            } else if (userRank === 3) {
+                rankingLabel = 'Average';
+            } else {
+                rankingLabel = 'Nearly there';
+            }
+        } else {
+            // For larger groups, use percentile-based categories
+            if (positionPercentile <= 20) {
+                rankingLabel = 'Superstar';
+            } else if (positionPercentile <= 40) {
+                rankingLabel = 'Amazing';
+            } else if (positionPercentile <= 60) {
+                rankingLabel = 'Average';
+            } else if (positionPercentile <= 80) {
+                rankingLabel = 'Nearly there';
+            } else {
+                rankingLabel = 'Room for growth';
+            }
+        }
+
+        return rankingLabel;
+    } catch (error) {
+        console.error('Error calculating user ranking:', error);
+        return '-';
+    }
+}
+
+// Load user's results - showing ALL challenges
 async function loadMyResults() {
     try {
         const currentUser = getCurrentUser();
@@ -399,53 +544,72 @@ async function loadMyResults() {
 
         const container = document.getElementById('myResultsContent');
 
-        if (submissions.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-state-icon">📭</div>
-                    <h3>No submissions yet</h3>
-                    <p>Start by submitting your first challenge!</p>
-                </div>
-            `;
-            return;
-        }
-
-        container.innerHTML = '<table class="leaderboard-table"><thead><tr><th>Challenge</th><th>Result</th><th>Points</th><th>Buddy</th><th>Status</th><th>Date</th></tr></thead><tbody></tbody></table>';
+        // Always show table with all challenges
+        container.innerHTML = '<table class="leaderboard-table"><thead><tr><th>Challenge</th><th>Result</th><th>Points</th><th>Buddy</th><th>Status</th><th>Ranking</th></tr></thead><tbody></tbody></table>';
 
         const tbody = container.querySelector('tbody');
 
-        submissions.forEach(sub => {
-            const challenge = challenges.find(c => c.id === sub.Challenge);
-            const date = new Date(sub.Timestamp).toLocaleDateString();
-
-            let statusBadge = '';
-            if (sub.VerificationStatus === 'Pending') {
-                statusBadge = '<span class="badge badge-pending">⏳ Pending</span>';
-            } else if (sub.VerificationStatus === 'Approved' || sub.SubmittedBy === 'Admin') {
-                statusBadge = '<span class="badge badge-approved">✅ Approved</span>';
-            } else if (sub.VerificationStatus === 'Rejected') {
-                statusBadge = '<span class="badge badge-rejected">❌ Rejected</span>';
-            }
-
-            if (sub.SubmittedBy === 'Admin') {
-                statusBadge += ' <span class="badge badge-admin">Admin Entry</span>';
-            }
-
-            // Calculate percentile for display
-            const percentileData = calculatePercentile(sub.Challenge, parseFloat(sub.Result));
-            const percentileDisplay = formatPercentileDisplay(percentileData);
-
+        // Loop through ALL challenges and display each one
+        for (const challenge of challenges) {
             const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${challenge?.icon || ''} ${challenge?.name || sub.Challenge}</td>
-                <td><strong>${sub.Result} ${sub.Unit}</strong></td>
-                <td>${percentileDisplay.html}</td>
-                <td>${sub.BuddyName || 'N/A'}</td>
-                <td>${statusBadge}</td>
-                <td>${date}</td>
-            `;
+
+            // Find if user has a submission for this challenge
+            const userSubmission = submissions.find(sub => sub.Challenge === challenge.id);
+
+            if (userSubmission) {
+                // User has submitted this challenge
+                let statusBadge = '';
+                if (userSubmission.VerificationStatus === 'Pending') {
+                    statusBadge = '<span class="badge badge-pending">⏳ Pending</span>';
+                } else if (userSubmission.VerificationStatus === 'Approved' || userSubmission.SubmittedBy === 'Admin') {
+                    statusBadge = '<span class="badge badge-approved">✅ Approved</span>';
+                } else if (userSubmission.VerificationStatus === 'Rejected') {
+                    statusBadge = '<span class="badge badge-rejected">❌ Rejected</span>';
+                }
+
+                if (userSubmission.SubmittedBy === 'Admin') {
+                    statusBadge += ' <span class="badge badge-admin">Admin Entry</span>';
+                }
+
+                const isTimed = ['run1500m', 'cdlmile', 'plank'].includes(challenge.id);
+                const displayResult = isTimed
+                    ? formatTime(userSubmission.Result)
+                    : `${userSubmission.Result} ${userSubmission.Unit}`;
+
+                // Calculate ranking label (only for approved submissions)
+                let rankingDisplay = '-';
+                if (userSubmission.VerificationStatus === 'Approved' || userSubmission.SubmittedBy === 'Admin') {
+                    rankingDisplay = await getUserRankingInChallenge(
+                        challenge.id,
+                        currentUser.email,
+                        userSubmission.Result,
+                        currentUser.gradeLevel,
+                        currentUser.gender
+                    );
+                }
+
+                row.innerHTML = `
+                    <td>${challenge.icon} ${challenge.name}</td>
+                    <td><strong>${displayResult}</strong></td>
+                    <td><span class="badge badge-primary">${userSubmission.Points || 0} pts</span></td>
+                    <td>${userSubmission.BuddyName || '-'}</td>
+                    <td>${statusBadge}</td>
+                    <td>${rankingDisplay}</td>
+                `;
+            } else {
+                // User has NOT submitted this challenge
+                row.innerHTML = `
+                    <td>${challenge.icon} ${challenge.name}</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td><span class="badge badge-secondary">Not submitted</span></td>
+                    <td>-</td>
+                `;
+            }
+
             tbody.appendChild(row);
-        });
+        }
     } catch (error) {
         console.error('Error loading results:', error);
     }
@@ -487,15 +651,20 @@ async function loadPendingVerifications() {
 
             const card = document.createElement('div');
             card.className = 'verification-card';
+
+            const displayResult = ['run1500m', 'cdlmile', 'plank'].includes(sub.Challenge)
+                ? formatTime(sub.Result)
+                : `${sub.Result} ${sub.Unit}`;
+
             card.innerHTML = `
                 <div class="verification-info">
                     <h4>${challenge?.icon || ''} ${challenge?.name || sub.Challenge}</h4>
-                    <p><strong>${sub.StudentName}</strong> achieved <strong class="verification-result">${sub.Result} ${sub.Unit}</strong></p>
-                    <p style="font-size: 0.9rem; color: #999;">Submitted on ${date}</p>
+                    <p><strong>${sub.StudentName}</strong> achieved <strong class="verification-result">${displayResult}</strong></p>
+                    <p style="font-size: 0.9rem;">Submitted: ${date}</p>
                 </div>
                 <div class="verification-actions">
                     <button class="btn btn-success" onclick="verifySubmission('${sub.SubmissionID}', 'Approved')">
-                        ✅ Approve
+                        ✅ Verify
                     </button>
                     <button class="btn btn-danger" onclick="verifySubmission('${sub.SubmissionID}', 'Rejected')">
                         ❌ Reject
@@ -564,10 +733,15 @@ async function loadAdminVerifications() {
 
             const card = document.createElement('div');
             card.className = 'verification-card';
+
+            const displayResult = ['run1500m', 'cdlmile', 'plank'].includes(sub.Challenge)
+                ? formatTime(sub.Result)
+                : `${sub.Result} ${sub.Unit}`;
+
             card.innerHTML = `
                 <div class="verification-info">
                     <h4>${challenge?.icon || ''} ${challenge?.name || sub.Challenge}</h4>
-                    <p><strong>${sub.StudentName}</strong>${sub.GradeLevel ? ' (Grade ' + sub.GradeLevel + ')' : ''} achieved <strong class="verification-result">${sub.Result} ${sub.Unit}</strong></p>
+                    <p><strong>${sub.StudentName}</strong>${sub.GradeLevel ? ' (Grade ' + sub.GradeLevel + ')' : ''} achieved <strong class="verification-result">${displayResult}</strong></p>
                     <p style="font-size: 0.9rem;">Buddy: ${sub.BuddyName} | Submitted: ${date}</p>
                 </div>
                 <div class="verification-actions">
@@ -686,9 +860,9 @@ async function handleLeaderboardFilter(e) {
 
         // Build table based on type
         if (isOverall) {
-            container.innerHTML = '<table class="leaderboard-table"><thead><tr><th>Rank</th><th>Name</th><th>Total Points</th><th>Challenges</th></tr></thead><tbody></tbody></table>';
+            container.innerHTML = '<table class="leaderboard-table"><thead><tr><th>Rank</th><th>Name</th><th>Total Points</th><th>Challenges Completed</th><th>Ranking</th></tr></thead><tbody></tbody></table>';
         } else {
-            container.innerHTML = '<table class="leaderboard-table"><thead><tr><th>Rank</th><th>Name</th><th>Result</th><th>Points</th><th>Date</th></tr></thead><tbody></tbody></table>';
+            container.innerHTML = '<table class="leaderboard-table"><thead><tr><th>Rank</th><th>Name</th><th>Result</th><th>Points</th><th>Ranking</th></tr></thead><tbody></tbody></table>';
         }
 
         const tbody = container.querySelector('tbody');
@@ -723,25 +897,130 @@ async function handleLeaderboardFilter(e) {
             }
 
             if (isOverall) {
-                // Overall leaderboard row
+                // Overall leaderboard row - use visual position bars like individual challenges
+                const totalInLeague = leaderboard.length;
+                const positionPercentile = (rank / totalInLeague) * 100;
+
+                // Bar width represents actual percentile (inverted: 1st place = 100%, last = small)
+                const barWidth = Math.max(10, 100 - positionPercentile);
+
+                // Determine label and color based on percentile position
+                let rankingLabel;
+                let colorClass;
+
+                // For smaller groups (< 5), build categories from top down
+                if (totalInLeague < 5) {
+                    if (rank === 1) {
+                        rankingLabel = 'Superstar';
+                        colorClass = 'top-25';
+                    } else if (rank === 2) {
+                        rankingLabel = 'Amazing';
+                        colorClass = 'top-50';
+                    } else if (rank === 3) {
+                        rankingLabel = 'Average';
+                        colorClass = 'top-75';
+                    } else {
+                        rankingLabel = 'Nearly there';
+                        colorClass = 'bottom-25';
+                    }
+                } else {
+                    // For larger groups, use percentile-based categories
+                    if (positionPercentile <= 20) {
+                        rankingLabel = 'Superstar';
+                        colorClass = 'top-25';
+                    } else if (positionPercentile <= 40) {
+                        rankingLabel = 'Amazing';
+                        colorClass = 'top-50';
+                    } else if (positionPercentile <= 60) {
+                        rankingLabel = 'Average';
+                        colorClass = 'top-75';
+                    } else if (positionPercentile <= 80) {
+                        rankingLabel = 'Nearly there';
+                        colorClass = 'bottom-25';
+                    } else {
+                        rankingLabel = 'Room for growth';
+                        colorClass = 'bottom-25';
+                    }
+                }
+
                 row.innerHTML = `
                     <td>${rankBadge}</td>
                     <td>${entry.name}${isCurrentUser ? ' <strong>(You)</strong>' : ''}</td>
                     <td><strong style="color: var(--primary-color); font-size: 1.1em;">${entry.totalPoints}</strong> pts</td>
                     <td>${entry.challengesCompleted} / 15</td>
+                    <td>
+                        <div class="position-bar-container">
+                            <div class="position-bar ${colorClass}" style="width: ${barWidth}%"></div>
+                            <span class="position-text">${rankingLabel}</span>
+                        </div>
+                    </td>
                 `;
             } else {
                 // Individual challenge leaderboard row
-                const date = new Date(entry.timestamp).toLocaleDateString();
                 const percentileData = calculatePercentile(challengeId, entry.result);
-                const percentileDisplay = formatPercentileDisplay(percentileData);
+
+                // Calculate position bar and label based on rank in current leaderboard
+                const totalInLeague = leaderboard.length;
+                const positionPercentile = (rank / totalInLeague) * 100;
+
+                // Bar width represents actual percentile (inverted: 1st place = 100%, last = small)
+                const barWidth = Math.max(10, 100 - positionPercentile);
+
+                // Determine label and color based on percentile position
+                let rankingLabel;
+                let colorClass;
+
+                // For smaller groups (< 5), build categories from top down
+                if (totalInLeague < 5) {
+                    if (rank === 1) {
+                        rankingLabel = 'Superstar';
+                        colorClass = 'top-25';
+                    } else if (rank === 2) {
+                        rankingLabel = 'Amazing';
+                        colorClass = 'top-50';
+                    } else if (rank === 3) {
+                        rankingLabel = 'Average';
+                        colorClass = 'top-75';
+                    } else {
+                        rankingLabel = 'Nearly there';
+                        colorClass = 'bottom-25';
+                    }
+                } else {
+                    // For larger groups, use percentile-based categories
+                    if (positionPercentile <= 20) {
+                        rankingLabel = 'Superstar';
+                        colorClass = 'top-25';
+                    } else if (positionPercentile <= 40) {
+                        rankingLabel = 'Amazing';
+                        colorClass = 'top-50';
+                    } else if (positionPercentile <= 60) {
+                        rankingLabel = 'Average';
+                        colorClass = 'top-75';
+                    } else if (positionPercentile <= 80) {
+                        rankingLabel = 'Nearly there';
+                        colorClass = 'bottom-25';
+                    } else {
+                        rankingLabel = 'Room for growth';
+                        colorClass = 'bottom-25';
+                    }
+                }
+
+                const isTimed = ['run1500m', 'cdlmile', 'plank'].includes(challengeId);
+                const displayResult = isTimed
+                    ? formatTime(entry.result)
+                    : `${entry.result} ${entry.unit}`;
 
                 row.innerHTML = `
                     <td>${rankBadge}</td>
                     <td>${entry.name}${isCurrentUser ? ' <strong>(You)</strong>' : ''}</td>
-                    <td><strong>${entry.result} ${entry.unit}</strong></td>
-                    <td>${percentileDisplay.html}</td>
-                    <td>${date}</td>
+                    <td><strong>${displayResult}</strong></td>
+                    <td>${percentileData.points} pts</td>
+                    <td>
+                        <div class="position-bar-container">
+                            <div class="position-bar ${colorClass}" style="width: ${barWidth}%"></div>
+                            <span class="position-text">${rankingLabel}</span>
+                        </div>
+                    </td>
                 `;
             }
 
@@ -758,6 +1037,13 @@ async function handleLeaderboardFilter(e) {
 
 // Switch view
 function switchView(viewName) {
+    // Security check: Only staff can access the admin view
+    if (viewName === 'admin' && !isCurrentUserStaff()) {
+        console.warn('Access denied: Admin view restricted to staff.');
+        switchView('leaderboard');
+        return;
+    }
+
     currentView = viewName;
 
     // Update nav tabs
@@ -854,4 +1140,12 @@ function showConfirmModal(title, message) {
 
 function hideModal() {
     document.getElementById('confirmModal').classList.add('hidden');
+}
+
+// Format seconds into MM:SS
+function formatTime(seconds) {
+    if (!seconds && seconds !== 0) return '-';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
 }

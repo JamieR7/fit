@@ -496,11 +496,11 @@ function calculatePercentile(challengeId, result) {
 // Get color based on percentile rank (matching your spreadsheet)
 function getPercentileColor(rank) {
     if (rank >= 1 && rank <= 8) {
-        return 'red'; // Low percentile
+        return 'red'; // Low percentile (Needs Improvement)
     } else if (rank >= 9 && rank <= 17) {
-        return 'yellow'; // Mid percentile
+        return 'green'; // Mid percentile (Average - Good)
     } else if (rank >= 18 && rank <= 25) {
-        return 'blue'; // High percentile
+        return 'orange'; // High percentile (Very Good - Excellent)
     }
     return 'gray';
 }
@@ -509,10 +509,14 @@ function getPercentileColor(rank) {
 function getPercentileBadgeColor(color) {
     switch (color) {
         case 'red':
-            return '#dc3545';
-        case 'yellow':
+            return '#dc3545'; // Danger Red
+        case 'green':
+            return '#28a745'; // Success Green
+        case 'orange':
+            return '#fd7e14'; // Vibrant Orange
+        case 'yellow': // Kept for backward compatibility if needed, though unused now
             return '#fbba07';
-        case 'blue':
+        case 'blue': // Kept for backward compatibility
             return '#004587';
         default:
             return '#6c757d';
@@ -530,9 +534,9 @@ function getPercentileDescription(rank) {
     } else if (rank >= 9) {
         return 'Average';
     } else if (rank >= 5) {
-        return 'Below Average';
+        return 'Nearly There';
     } else {
-        return 'Needs Improvement';
+        return 'Room to Grow';
     }
 }
 

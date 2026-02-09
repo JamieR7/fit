@@ -50,9 +50,9 @@
             <div class="container">
                 <!-- Navigation Tabs -->
                 <nav class="nav-tabs" id="navTabs">
-                    <button class="nav-tab active" data-view="submit">📝 Submit Challenge</button>
-                    <button class="nav-tab" data-view="myResults">📊 My Results</button>
-                    <button class="nav-tab" data-view="verify">✅ Verify Buddies</button>
+                    <button class="nav-tab active student-only" data-view="submit">📝 Submit Challenge</button>
+                    <button class="nav-tab student-only" data-view="myResults">📊 My Results</button>
+                    <button class="nav-tab student-only" data-view="verify">✅ Verify Buddies</button>
                     <button class="nav-tab" data-view="leaderboard">🏆 Leaderboard</button>
                     <button class="nav-tab hidden" data-view="admin" id="adminTab">⚙️ Admin</button>
                 </nav>
@@ -76,8 +76,26 @@
                             <div class="form-group" id="resultGroup" style="display: none;">
                                 <label for="resultInput">Your Result</label>
                                 <div class="input-with-unit">
-                                    <input type="number" id="resultInput" class="form-control" step="any" required>
+                                    <input type="number" id="resultInput" class="form-control" step="any">
                                     <span class="unit-label" id="unitLabel">-</span>
+                                </div>
+                            </div>
+
+                            <div class="form-group" id="timeInputGroup" style="display: none;">
+                                <label>Your Result (Time)</label>
+                                <div
+                                    style="display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 0.5rem;">
+                                    <div class="input-with-unit">
+                                        <input type="number" id="minutesInput" class="form-control" placeholder="Min"
+                                            min="0">
+                                        <span class="unit-label">m</span>
+                                    </div>
+                                    <span style="font-weight: bold; font-size: 1.2rem;">:</span>
+                                    <div class="input-with-unit">
+                                        <input type="number" id="secondsInput" class="form-control" placeholder="Sec"
+                                            min="0" max="59">
+                                        <span class="unit-label">s</span>
+                                    </div>
                                 </div>
                             </div>
 
@@ -271,11 +289,29 @@
                                 </select>
                             </div>
 
-                            <div class="form-group">
+                            <div class="form-group" id="adminResultGroup" style="display: block;">
                                 <label for="adminResultInput">Result</label>
                                 <div class="input-with-unit">
-                                    <input type="number" id="adminResultInput" class="form-control" step="any" required>
+                                    <input type="number" id="adminResultInput" class="form-control" step="any">
                                     <span class="unit-label" id="adminUnitLabel">-</span>
+                                </div>
+                            </div>
+
+                            <div class="form-group" id="adminTimeInputGroup" style="display: none;">
+                                <label>Result (Time)</label>
+                                <div
+                                    style="display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 0.5rem;">
+                                    <div class="input-with-unit">
+                                        <input type="number" id="adminMinutesInput" class="form-control"
+                                            placeholder="Min" min="0">
+                                        <span class="unit-label">m</span>
+                                    </div>
+                                    <span style="font-weight: bold; font-size: 1.2rem;">:</span>
+                                    <div class="input-with-unit">
+                                        <input type="number" id="adminSecondsInput" class="form-control"
+                                            placeholder="Sec" min="0" max="59">
+                                        <span class="unit-label">s</span>
+                                    </div>
                                 </div>
                             </div>
 
@@ -354,7 +390,7 @@
     <script src="https://alcdn.msauth.net/browser/2.14.2/js/msal-browser.min.js"></script>
     <script src="demo-mode.js"></script>
     <script src="config.js"></script>
-    <script src="scoring.js"></script>
+    <script src="scoring.js?v=2"></script>
     <script src="auth.js"></script>
     <script src="excel-api.js"></script>
     <script src="pdf-generator.js"></script>
